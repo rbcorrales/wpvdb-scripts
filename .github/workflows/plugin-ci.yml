@@ -1,0 +1,93 @@
+name: Reusable plugin CI
+
+on:
+  workflow_call:
+    inputs:
+      php-version:
+        type: string
+        default: '8.3'
+      timeout-minutes:
+        type: number
+        default: 15
+      bun-install:
+        type: boolean
+        default: false
+      composer-install:
+        type: boolean
+        default: true
+      composer-validate:
+        type: boolean
+        default: true
+      php-lint-command:
+        type: string
+        default: ''
+      php-analyze-command:
+        type: string
+        default: ''
+      bun-lint-command:
+        type: string
+        default: ''
+      build-command:
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php-version }}
+          coverage: none
+
+      - name: Set up Bun
+        if: ${{ inputs.bun-install }}
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Composer dependencies
+        if: ${{ inputs.composer-install }}
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install Bun dependencies
+        if: ${{ inputs.bun-install }}
+        run: bun install --frozen-lockfile
+
+      - name: Validate Composer configuration
+        if: ${{ inputs.composer-install && inputs.composer-validate }}
+        run: composer validate --strict
+
+      - name: Lint PHP
+        if: ${{ inputs.php-lint-command != '' }}
+        env:
+          PHP_LINT_COMMAND: ${{ inputs.php-lint-command }}
+        run: eval "$PHP_LINT_COMMAND"
+
+      - name: Analyze PHP
+        if: ${{ inputs.php-analyze-command != '' }}
+        env:
+          PHP_ANALYZE_COMMAND: ${{ inputs.php-analyze-command }}
+        run: eval "$PHP_ANALYZE_COMMAND"
+
+      - name: Lint assets
+        if: ${{ inputs.bun-lint-command != '' }}
+        env:
+          BUN_LINT_COMMAND: ${{ inputs.bun-lint-command }}
+        run: eval "$BUN_LINT_COMMAND"
+
+      - name: Build assets
+        if: ${{ inputs.build-command != '' }}
+        env:
+          BUILD_COMMAND: ${{ inputs.build-command }}
+        run: eval "$BUILD_COMMAND"

@@ -1,0 +1,240 @@
+name: Plugin release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      plugin-slug:
+        type: string
+        required: true
+      plugin-file:
+        type: string
+        required: true
+      php-version:
+        type: string
+        default: '8.3'
+      timeout-minutes:
+        type: number
+        default: 20
+      composer-install:
+        type: boolean
+        default: true
+      composer-validate:
+        type: boolean
+        default: true
+      bun-install:
+        type: boolean
+        default: false
+      php-lint-command:
+        type: string
+        default: ''
+      php-analyze-command:
+        type: string
+        default: ''
+      bun-lint-command:
+        type: string
+        default: ''
+      build-command:
+        type: string
+        default: ''
+      required-artifact:
+        type: string
+        default: ''
+      required-artifacts:
+        type: string
+        default: ''
+      required-language-patterns:
+        type: string
+        default: |
+          languages/*.mo
+      exclude-src:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build release zip
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php-version }}
+          coverage: none
+
+      - name: Set up Bun
+        if: ${{ inputs.bun-install }}
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Composer dependencies
+        if: ${{ inputs.composer-install }}
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install Bun dependencies
+        if: ${{ inputs.bun-install }}
+        run: bun install --frozen-lockfile
+
+      - name: Validate Composer configuration
+        if: ${{ inputs.composer-install && inputs.composer-validate }}
+        run: composer validate --strict
+
+      - name: Lint PHP
+        if: ${{ inputs.php-lint-command != '' }}
+        env:
+          PHP_LINT_COMMAND: ${{ inputs.php-lint-command }}
+        run: eval "$PHP_LINT_COMMAND"
+
+      - name: Analyze PHP
+        if: ${{ inputs.php-analyze-command != '' }}
+        env:
+          PHP_ANALYZE_COMMAND: ${{ inputs.php-analyze-command }}
+        run: eval "$PHP_ANALYZE_COMMAND"
+
+      - name: Lint assets
+        if: ${{ inputs.bun-lint-command != '' }}
+        env:
+          BUN_LINT_COMMAND: ${{ inputs.bun-lint-command }}
+        run: eval "$BUN_LINT_COMMAND"
+
+      - name: Verify tag matches plugin version
+        env:
+          PLUGIN_FILE: ${{ inputs.plugin-file }}
+          TAG_NAME: ${{ inputs.tag }}
+        run: |
+          version="${TAG_NAME#v}"
+          plugin_version="$(grep -E '^[[:space:]]*\*[[:space:]]+Version:' "$PLUGIN_FILE" | sed -E 's/^[[:space:]]*\*[[:space:]]+Version:[[:space:]]*//')"
+          if [ "$plugin_version" != "$version" ]; then
+            echo "Tag $TAG_NAME does not match plugin version $plugin_version"
+            exit 1
+          fi
+
+      - name: Build assets
+        if: ${{ inputs.build-command != '' }}
+        env:
+          BUILD_COMMAND: ${{ inputs.build-command }}
+        run: eval "$BUILD_COMMAND"
+
+      - name: Stage release files
+        env:
+          PLUGIN_SLUG: ${{ inputs.plugin-slug }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release/$PLUGIN_SLUG"
+          rsync -a --delete --exclude-from=.distignore ./ "$RUNNER_TEMP/release/$PLUGIN_SLUG/"
+
+      - name: Create release zip
+        env:
+          PLUGIN_SLUG: ${{ inputs.plugin-slug }}
+        run: |
+          cd "$RUNNER_TEMP/release"
+          zip -r "$PLUGIN_SLUG.zip" "$PLUGIN_SLUG"
+
+      - name: Verify release zip
+        env:
+          PLUGIN_SLUG: ${{ inputs.plugin-slug }}
+          PLUGIN_FILE: ${{ inputs.plugin-file }}
+          REQUIRED_ARTIFACT: ${{ inputs.required-artifact }}
+          REQUIRED_ARTIFACTS: ${{ inputs.required-artifacts }}
+          REQUIRED_LANGUAGE_PATTERNS: ${{ inputs.required-language-patterns }}
+          TAG_NAME: ${{ inputs.tag }}
+        run: |
+          zip_file="$RUNNER_TEMP/release/$PLUGIN_SLUG.zip"
+          version="${TAG_NAME#v}"
+          entries_file="$RUNNER_TEMP/release-entries.txt"
+
+          unzip -Z1 "$zip_file" > "$entries_file"
+          grep -q "^$PLUGIN_SLUG/$PLUGIN_FILE$" "$entries_file"
+
+          if [ -n "$REQUIRED_ARTIFACT" ]; then
+            grep -q "^$PLUGIN_SLUG/$REQUIRED_ARTIFACT$" "$entries_file"
+          fi
+          while IFS= read -r artifact; do
+            if [ -z "$artifact" ]; then
+              continue
+            fi
+
+            grep -q "^$PLUGIN_SLUG/$artifact$" "$entries_file"
+          done <<< "$REQUIRED_ARTIFACTS"
+
+          while IFS= read -r pattern; do
+            if [ -z "$pattern" ]; then
+              continue
+            fi
+
+            found=false
+            while IFS= read -r entry; do
+              if [[ "$entry" == $PLUGIN_SLUG/$pattern ]]; then
+                found=true
+                break
+              fi
+            done < "$entries_file"
+
+            if [ "$found" != "true" ]; then
+              echo "Missing release file matching $pattern"
+              exit 1
+            fi
+          done <<< "$REQUIRED_LANGUAGE_PATTERNS"
+
+          unzip -p "$zip_file" "$PLUGIN_SLUG/$PLUGIN_FILE" | grep -qE "^[[:space:]]*\\*[[:space:]]+Version:[[:space:]]+$version$"
+
+          for forbidden in .git .github node_modules vendor composer.json composer.lock package.json package-lock.json bun.lock phpcs.xml; do
+            ! grep -qE "^$PLUGIN_SLUG/$forbidden(/|$)" "$entries_file"
+          done
+
+          if [ "${{ inputs.exclude-src }}" = "true" ]; then
+            ! grep -qE "^$PLUGIN_SLUG/src/" "$entries_file"
+          fi
+
+      - name: Upload release zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.plugin-slug }}-release
+          path: ${{ runner.temp }}/release/${{ inputs.plugin-slug }}.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release zip artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.plugin-slug }}-release
+          path: ${{ runner.temp }}/release
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLUGIN_SLUG: ${{ inputs.plugin-slug }}
+          TAG_NAME: ${{ inputs.tag }}
+        run: |
+          zip_file="$RUNNER_TEMP/release/$PLUGIN_SLUG.zip"
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" "$zip_file" --clobber
+          else
+            gh release create "$TAG_NAME" "$zip_file" --generate-notes
+          fi

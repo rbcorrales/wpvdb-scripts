@@ -1,0 +1,45 @@
+name: Bump plugin version
+description: Bump WordPress plugin version metadata.
+
+inputs:
+  bump-type:
+    description: Version bump type.
+    required: true
+  plugin-file:
+    description: Plugin entry file.
+    required: true
+  version-constant:
+    description: Version constant name.
+    required: false
+    default: ''
+  package-file:
+    description: Optional package file.
+    required: false
+    default: ''
+  pot-file:
+    description: Optional POT file.
+    required: false
+    default: ''
+  pot-project:
+    description: Optional POT project name.
+    required: false
+    default: ''
+  block-json-glob:
+    description: Optional block metadata glob.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Bump plugin version
+      shell: bash
+      env:
+        BUMP_TYPE: ${{ inputs.bump-type }}
+        PLUGIN_FILE: ${{ inputs.plugin-file }}
+        VERSION_CONSTANT: ${{ inputs.version-constant }}
+        PACKAGE_FILE: ${{ inputs.package-file }}
+        POT_FILE: ${{ inputs.pot-file }}
+        POT_PROJECT: ${{ inputs.pot-project }}
+        BLOCK_JSON_GLOB: ${{ inputs.block-json-glob }}
+      run: php "$GITHUB_ACTION_PATH/../../../scripts/bump-plugin-version.php" "$BUMP_TYPE"

@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<ruleset name="WPVDB Scripts">
+	<description>PHP coding standards for WPVDB automation scripts.</description>
+
+	<rule ref="WordPress-Extra" />
+	<rule ref="WordPress-Docs" />
+	<rule ref="WordPress-VIP-Go">
+		<exclude name="WordPressVIPMinimum.JS" />
+		<exclude name="WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_fwrite" />
+		<exclude name="WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents" />
+		<exclude name="WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown" />
+	</rule>
+
+	<rule ref="WordPress">
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax.Found" />
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax.Found" />
+		<exclude name="Universal.Operators.DisallowStandalonePostIncrementDecrement.PostIncrementFound" />
+		<exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped" />
+	</rule>
+	<rule ref="Generic.Arrays.DisallowLongArraySyntax" />
+
+	<rule ref="PHPCompatibilityWP"/>
+	<config name="testVersion" value="8.3-"/>
+
+	<arg name="extensions" value="php"/>
+	<arg value="s"/>
+
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/.github/*</exclude-pattern>
+
+	<file>scripts</file>
+</ruleset>
