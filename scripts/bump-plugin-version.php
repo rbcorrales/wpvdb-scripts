@@ -58,7 +58,7 @@ function bump_plugin_version( string $root, string $bump_type ): string {
 
 	$writes                 = [];
 	$writes[ $plugin_path ] = replace_once(
-		'/(\*\s*Version:\s*)' . preg_quote( $current_version, '/' ) . '/',
+		'/^([ \t]*\*[ \t]+Version:[ \t]*)' . preg_quote( $current_version, '/' ) . '/m',
 		'${1}' . $new_version,
 		$plugin_contents,
 		$plugin_file
@@ -188,7 +188,7 @@ function read_required_file( string $path ): string {
  * @throws RuntimeException When the version cannot be found.
  */
 function capture_plugin_version( string $contents ): string {
-	$matched = preg_match_all( '/\*\s*Version:\s*(\d+\.\d+\.\d+(?:[-+]\S+)?)/', $contents, $matches );
+	$matched = preg_match_all( '/^[ \t]*\*[ \t]+Version:[ \t]*(\d+\.\d+\.\d+(?:[-+]\S+)?)/m', $contents, $matches );
 
 	if ( 1 !== $matched ) {
 		throw new RuntimeException( 'Unable to find plugin header Version.' );

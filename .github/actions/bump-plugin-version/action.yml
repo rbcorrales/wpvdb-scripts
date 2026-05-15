@@ -29,10 +29,16 @@ inputs:
     required: false
     default: ''
 
+outputs:
+  new-version:
+    description: New plugin version.
+    value: ${{ steps.bump.outputs.new-version }}
+
 runs:
   using: composite
   steps:
     - name: Bump plugin version
+      id: bump
       shell: bash
       env:
         BUMP_TYPE: ${{ inputs.bump-type }}
@@ -42,4 +48,14 @@ runs:
         POT_FILE: ${{ inputs.pot-file }}
         POT_PROJECT: ${{ inputs.pot-project }}
         BLOCK_JSON_GLOB: ${{ inputs.block-json-glob }}
-      run: php "$GITHUB_ACTION_PATH/../../../scripts/bump-plugin-version.php" "$BUMP_TYPE"
+      run: |
+        output="$(php "$GITHUB_ACTION_PATH/../../../scripts/bump-plugin-version.php" "$BUMP_TYPE")"
+        echo "$output"
+
+        version="$(printf '%s\n' "$output" | awk '/^Bumped plugin version to / { print $NF }')"
+        if [ -z "$version" ]; then
+          echo "Unable to parse bumped version from script output." >&2
+          exit 1
+        fi
+
+        echo "new-version=$version" >> "$GITHUB_OUTPUT"

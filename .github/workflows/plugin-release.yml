@@ -39,6 +39,9 @@ on:
       build-command:
         type: string
         default: ''
+      i18n-command:
+        type: string
+        default: ''
       required-artifact:
         type: string
         default: ''
@@ -84,6 +87,14 @@ jobs:
       - name: Set up Bun
         if: ${{ inputs.bun-install }}
         uses: oven-sh/setup-bun@v2
+
+      - name: Set up WP CLI
+        if: ${{ inputs.i18n-command != '' }}
+        uses: wp-cli/setup-wp-cli@v2
+
+      - name: Install gettext
+        if: ${{ inputs.i18n-command != '' }}
+        run: sudo apt-get update && sudo apt-get install -y gettext
 
       - name: Install Composer dependencies
         if: ${{ inputs.composer-install }}
@@ -132,6 +143,24 @@ jobs:
         env:
           BUILD_COMMAND: ${{ inputs.build-command }}
         run: eval "$BUILD_COMMAND"
+
+      - name: Generate translation files
+        if: ${{ inputs.i18n-command != '' }}
+        env:
+          I18N_COMMAND: ${{ inputs.i18n-command }}
+        run: eval "$I18N_COMMAND"
+
+      - name: Verify generated files are committed
+        if: ${{ inputs.i18n-command != '' }}
+        run: |
+          if [ -n "$(git status --short)" ]; then
+            echo "::error::Generated files changed during release at $(git rev-parse HEAD)."
+            echo "If Plugin main maintenance has committed regenerated translation files since this tag, tag the newer commit on main."
+            git status --short
+            echo "==="
+            git diff --stat
+            exit 1
+          fi
 
       - name: Stage release files
         env:
