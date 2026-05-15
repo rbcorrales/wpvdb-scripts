@@ -194,7 +194,7 @@ jobs:
             fi
           fi
 
-          git commit -m "$subject [skip ci]"
+          git commit -m "$subject"
           git push origin HEAD:main || {
             echo "Push rejected because main moved during this run."
             exit 0
