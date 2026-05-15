@@ -1,8 +1,19 @@
 # wpvdb-scripts
 
+[![Checks](https://github.com/rbcorrales/wpvdb-scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/rbcorrales/wpvdb-scripts/actions/workflows/ci.yml)
+[![PHP](https://img.shields.io/badge/PHP-8.3%2B-777bb4?logo=php&logoColor=white)](#requirements)
+[![License](https://img.shields.io/badge/License-GPLv2%2B-blue.svg)](LICENSE)
+
 Shared automation scripts and reusable workflows for WPVDB plugin repositories.
 
 The workflows cover plugin checks and release zip creation. Plugin repositories call these workflows with their own slug, entry file, build command, and translation settings.
+
+## Requirements
+
+| Requirement | Version or notes |
+|---|---|
+| PHP | 8.3 or newer |
+| GitHub Actions | Used by the reusable workflow files |
 
 ## Workflows
 
