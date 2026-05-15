@@ -236,7 +236,7 @@ jobs:
           fi
 
       - name: Upload release zip artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.plugin-slug }}-release
           path: ${{ runner.temp }}/release/${{ inputs.plugin-slug }}.zip
@@ -253,7 +253,7 @@ jobs:
 
     steps:
       - name: Download release zip artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.plugin-slug }}-release
           path: ${{ runner.temp }}/release
