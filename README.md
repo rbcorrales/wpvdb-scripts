@@ -64,3 +64,17 @@ PLUGIN_FILE=plugin.php php scripts/bump-plugin-version.php patch
 Pass `major`, `minor`, or `patch` as the first argument. Set `PACKAGE_FILE`, `VERSION_CONSTANT`, and `BLOCK_JSON_GLOB` when the target plugin has those version surfaces.
 
 Plugin maintenance and release workflows can receive an `i18n-command` input. Maintenance runs it on `main` and commits generated language file changes when needed. Release runs it before staging the zip, then fails if generation changed tracked files so tags stay aligned with release artifacts.
+
+## Development
+
+Install dependencies:
+
+```bash
+composer install
+```
+
+Run the local checks:
+
+```bash
+composer lint
+```
