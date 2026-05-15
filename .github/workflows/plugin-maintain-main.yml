@@ -60,7 +60,7 @@ concurrency:
 jobs:
   maintain:
     name: Maintain generated files
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && ( inputs.i18n-command != '' || inputs.version-bump ) }}
+    if: ${{ github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && ( inputs.i18n-command != '' || ( github.event_name == 'push' && inputs.version-bump ) ) }}
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout-minutes }}
 
@@ -99,7 +99,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Determine version bump
-        if: ${{ inputs.version-bump }}
+        if: ${{ github.event_name == 'push' && inputs.version-bump }}
         id: version_bump
         env:
           BEFORE_SHA: ${{ github.event.before }}
