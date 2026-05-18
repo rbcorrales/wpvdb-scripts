@@ -5,10 +5,6 @@
  * @package WPVDB_Scripts
  */
 
-// phpcs:disable WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_fwrite
-// phpcs:disable WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents
-// phpcs:disable WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown
-
 declare(strict_types=1);
 
 if ( is_bump_plugin_version_entrypoint( $argv ?? [] ) ) {
@@ -34,14 +30,14 @@ function is_bump_plugin_version_entrypoint( array $argv ): bool {
  */
 function bump_plugin_version_cli( array $argv ): int {
 	if ( 'cli' !== PHP_SAPI ) {
-		fwrite( STDERR, "This script must run from the command line.\n" );
+		fwrite( STDERR, "This script must run from the command line.\n" ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_fwrite -- CLI scripts write status messages to STDERR.
 		return 1;
 	}
 
 	$root = getcwd();
 
 	if ( false === $root ) {
-		fwrite( STDERR, "Unable to determine repository root.\n" );
+		fwrite( STDERR, "Unable to determine repository root.\n" ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_fwrite -- CLI scripts write status messages to STDERR.
 		return 1;
 	}
 
@@ -49,10 +45,10 @@ function bump_plugin_version_cli( array $argv ): int {
 
 	try {
 		$new_version = bump_plugin_version( $root, $bump_type );
-		fwrite( STDOUT, "Bumped plugin version to {$new_version}\n" );
+		fwrite( STDOUT, "Bumped plugin version to {$new_version}\n" ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_fwrite -- CLI scripts write status messages to STDOUT.
 		return 0;
 	} catch ( Throwable $throwable ) {
-		fwrite( STDERR, $throwable->getMessage() . "\n" );
+		fwrite( STDERR, $throwable->getMessage() . "\n" ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_fwrite -- CLI scripts write status messages to STDERR.
 		return 1;
 	}
 }
@@ -147,6 +143,7 @@ function bump_plugin_version( string $root, string $bump_type ): string {
 	}
 
 	foreach ( $writes as $path => $contents ) {
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents -- This CLI helper intentionally updates version metadata files.
 		if ( file_put_contents( $path, $contents ) === false ) {
 			throw new RuntimeException( "Unable to write {$path}" );
 		}
@@ -198,6 +195,7 @@ function path_join( string $base, string $path ): string {
  * @throws RuntimeException When the file cannot be read.
  */
 function read_required_file( string $path ): string {
+	// phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown -- Local filesystem reads are this CLI helper's purpose.
 	$contents = file_get_contents( $path );
 
 	if ( false === $contents ) {

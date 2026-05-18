@@ -5,13 +5,6 @@
  * @package WPVDB_Scripts
  */
 
-// phpcs:disable WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv
-// phpcs:disable WordPressVIPMinimum.Functions.RestrictedFunctions.directory_mkdir
-// phpcs:disable WordPressVIPMinimum.Functions.RestrictedFunctions.directory_rmdir
-// phpcs:disable WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents
-// phpcs:disable WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_unlink
-// phpcs:disable WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown
-
 declare(strict_types=1);
 
 namespace WPVDB_Scripts\Tests\Unit;
@@ -20,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 use function bump_plugin_version;
+use function read_required_file;
 
 /**
  * Tests plugin version bump behavior.
@@ -35,6 +29,13 @@ final class BumpPluginVersionTest extends TestCase {
 	private array $temp_dirs = [];
 
 	/**
+	 * Previous environment values.
+	 *
+	 * @var array<string, string|false>
+	 */
+	private array $previous_env = [];
+
+	/**
 	 * Clean temporary fixtures and environment.
 	 */
 	protected function tearDown(): void {
@@ -43,8 +44,16 @@ final class BumpPluginVersionTest extends TestCase {
 		}
 
 		foreach ( [ 'PLUGIN_FILE', 'VERSION_CONSTANT', 'PACKAGE_FILE', 'POT_FILE', 'POT_PROJECT', 'BLOCK_JSON_GLOB' ] as $name ) {
-			putenv( $name );
+			if ( array_key_exists( $name, $this->previous_env ) && false !== $this->previous_env[ $name ] ) {
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv -- Tests isolate CLI helper environment variables.
+				putenv( "{$name}={$this->previous_env[ $name ]}" );
+			} else {
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv -- Tests isolate CLI helper environment variables.
+				putenv( $name );
+			}
 		}
+
+		$this->previous_env = [];
 	}
 
 	/**
@@ -73,11 +82,11 @@ final class BumpPluginVersionTest extends TestCase {
 		);
 
 		self::assertSame( '0.2.0', bump_plugin_version( $root, 'minor' ), 'Minor bumps should update the returned version.' );
-		self::assertStringContainsString( "* Version: 0.2.0\n", $this->read_file( $root . '/demo-plugin.php' ), 'Plugin headers should be bumped.' );
-		self::assertStringContainsString( "define( 'DEMO_PLUGIN_VERSION', '0.2.0' );", $this->read_file( $root . '/demo-plugin.php' ), 'Version constants should be bumped.' );
-		self::assertStringContainsString( '"version": "0.2.0"', $this->read_file( $root . '/package.json' ), 'Package versions should be bumped.' );
-		self::assertStringContainsString( 'Project-Id-Version: Demo plugin 0.2.0\\n', $this->read_file( $root . '/languages/demo.pot' ), 'POT project versions should be bumped.' );
-		self::assertStringContainsString( '"version": "0.2.0"', $this->read_file( $root . '/src/example/block.json' ), 'Block metadata versions should be bumped.' );
+		self::assertStringContainsString( "* Version: 0.2.0\n", read_required_file( $root . '/demo-plugin.php' ), 'Plugin headers should be bumped.' );
+		self::assertStringContainsString( "define( 'DEMO_PLUGIN_VERSION', '0.2.0' );", read_required_file( $root . '/demo-plugin.php' ), 'Version constants should be bumped.' );
+		self::assertStringContainsString( '"version": "0.2.0"', read_required_file( $root . '/package.json' ), 'Package versions should be bumped.' );
+		self::assertStringContainsString( 'Project-Id-Version: Demo plugin 0.2.0\\n', read_required_file( $root . '/languages/demo.pot' ), 'POT project versions should be bumped.' );
+		self::assertStringContainsString( '"version": "0.2.0"', read_required_file( $root . '/src/example/block.json' ), 'Block metadata versions should be bumped.' );
 	}
 
 	/**
@@ -133,6 +142,7 @@ final class BumpPluginVersionTest extends TestCase {
 	 */
 	private function make_fixture( array $files ): string {
 		$root = sys_get_temp_dir() . '/wpvdb-scripts-test-' . bin2hex( random_bytes( 6 ) );
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.directory_mkdir -- Tests create isolated temporary fixture directories.
 		mkdir( $root, 0777, true );
 		$this->temp_dirs[] = $root;
 
@@ -140,8 +150,10 @@ final class BumpPluginVersionTest extends TestCase {
 			$path = $root . '/' . $relative_path;
 			$dir  = dirname( $path );
 			if ( ! is_dir( $dir ) ) {
+				// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.directory_mkdir -- Tests create isolated temporary fixture directories.
 				mkdir( $dir, 0777, true );
 			}
+			// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents -- Tests create isolated temporary fixture files.
 			file_put_contents( $path, $contents );
 		}
 
@@ -155,24 +167,13 @@ final class BumpPluginVersionTest extends TestCase {
 	 */
 	private function configure_env( array $env ): void {
 		foreach ( $env as $name => $value ) {
+			if ( ! array_key_exists( $name, $this->previous_env ) ) {
+				$this->previous_env[ $name ] = getenv( $name );
+			}
+
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv -- Tests configure CLI helper environment variables.
 			putenv( "{$name}={$value}" );
 		}
-	}
-
-	/**
-	 * Read a fixture file.
-	 *
-	 * @param string $path File path.
-	 * @throws RuntimeException When the fixture cannot be read.
-	 */
-	private function read_file( string $path ): string {
-		$contents = file_get_contents( $path );
-
-		if ( false === $contents ) {
-			throw new RuntimeException( "Unable to read fixture file: {$path}" );
-		}
-
-		return $contents;
 	}
 
 	/**
@@ -191,9 +192,11 @@ final class BumpPluginVersionTest extends TestCase {
 		);
 
 		foreach ( $iterator as $item ) {
+			// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.directory_rmdir, WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_unlink -- Tests clean isolated temporary fixtures.
 			$item->isDir() ? rmdir( $item->getPathname() ) : unlink( $item->getPathname() );
 		}
 
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.directory_rmdir -- Tests clean isolated temporary fixture directories.
 		rmdir( $path );
 	}
 }
