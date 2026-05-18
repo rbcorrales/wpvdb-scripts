@@ -36,6 +36,9 @@ on:
       bun-lint-command:
         type: string
         default: ''
+      test-command:
+        type: string
+        default: ''
       build-command:
         type: string
         default: ''
@@ -128,6 +131,12 @@ jobs:
         env:
           BUN_LINT_COMMAND: ${{ inputs.bun-lint-command }}
         run: eval "$BUN_LINT_COMMAND"
+
+      - name: Run tests
+        if: ${{ inputs.test-command != '' }}
+        env:
+          TEST_COMMAND: ${{ inputs.test-command }}
+        run: eval "$TEST_COMMAND"
 
       - name: Verify tag matches plugin version
         env:
@@ -227,12 +236,22 @@ jobs:
 
           unzip -p "$zip_file" "$PLUGIN_SLUG/$PLUGIN_FILE" | grep -qE "^[[:space:]]*\\*[[:space:]]+Version:[[:space:]]+$version$"
 
-          for forbidden in .git .github node_modules vendor composer.json composer.lock package.json package-lock.json bun.lock phpcs.xml; do
-            ! grep -qE "^$PLUGIN_SLUG/$forbidden(/|$)" "$entries_file"
+          for forbidden in .git .github .gitignore .distignore .phpcs-cache .phpunit.cache .phpunit.result.cache node_modules vendor tests scripts stubs composer.json composer.lock package.json package-lock.json bun.lock phpcs.xml phpstan.neon.dist phpunit.xml phpunit.xml.dist AGENTS.md CLAUDE.md CONTRIBUTING.md README.md SECURITY.md; do
+            while IFS= read -r entry; do
+              if [ "$entry" = "$PLUGIN_SLUG/$forbidden" ] || [[ "$entry" == "$PLUGIN_SLUG/$forbidden/"* ]]; then
+                echo "Forbidden release file found: $entry"
+                exit 1
+              fi
+            done < "$entries_file"
           done
 
           if [ "${{ inputs.exclude-src }}" = "true" ]; then
-            ! grep -qE "^$PLUGIN_SLUG/src/" "$entries_file"
+            while IFS= read -r entry; do
+              if [[ "$entry" == "$PLUGIN_SLUG/src/"* ]]; then
+                echo "Forbidden source file found: $entry"
+                exit 1
+              fi
+            done < "$entries_file"
           fi
 
       - name: Upload release zip artifact

@@ -7,26 +7,50 @@
 
 declare(strict_types=1);
 
-if ( 'cli' !== PHP_SAPI ) {
-	fwrite( STDERR, "This script must run from the command line.\n" );
-	exit( 1 );
+if ( is_bump_plugin_version_entrypoint( $argv ?? [] ) ) {
+	$exit_code = bump_plugin_version_cli( $argv );
+	exit( $exit_code ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Integer process status, not output.
 }
 
-$root = getcwd();
-
-if ( false === $root ) {
-	fwrite( STDERR, "Unable to determine repository root.\n" );
-	exit( 1 );
+/**
+ * Whether this file is running as the CLI entrypoint.
+ *
+ * @param array<int, string> $argv CLI argv.
+ * @return bool
+ */
+function is_bump_plugin_version_entrypoint( array $argv ): bool {
+	return 'cli' === PHP_SAPI && isset( $argv[0] ) && realpath( $argv[0] ) === __FILE__;
 }
 
-$bump_type = $argv[1] ?? 'patch';
+/**
+ * CLI entrypoint.
+ *
+ * @param array<int, string> $argv CLI argv.
+ * @return int Process exit code.
+ */
+function bump_plugin_version_cli( array $argv ): int {
+	if ( 'cli' !== PHP_SAPI ) {
+		fwrite( STDERR, "This script must run from the command line.\n" );
+		return 1;
+	}
 
-try {
-	$new_version = bump_plugin_version( $root, $bump_type );
-	fwrite( STDOUT, "Bumped plugin version to {$new_version}\n" );
-} catch ( Throwable $throwable ) {
-	fwrite( STDERR, $throwable->getMessage() . "\n" );
-	exit( 1 );
+	$root = getcwd();
+
+	if ( false === $root ) {
+		fwrite( STDERR, "Unable to determine repository root.\n" );
+		return 1;
+	}
+
+	$bump_type = $argv[1] ?? 'patch';
+
+	try {
+		$new_version = bump_plugin_version( $root, $bump_type );
+		fwrite( STDOUT, "Bumped plugin version to {$new_version}\n" );
+		return 0;
+	} catch ( Throwable $throwable ) {
+		fwrite( STDERR, $throwable->getMessage() . "\n" );
+		return 1;
+	}
 }
 
 /**
