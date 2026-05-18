@@ -43,10 +43,10 @@ final class BumpPluginVersionTest extends TestCase {
 			$this->delete_tree( $dir );
 		}
 
-		foreach ( [ 'PLUGIN_FILE', 'VERSION_CONSTANT', 'PACKAGE_FILE', 'POT_FILE', 'POT_PROJECT', 'BLOCK_JSON_GLOB' ] as $name ) {
-			if ( array_key_exists( $name, $this->previous_env ) && false !== $this->previous_env[ $name ] ) {
+		foreach ( $this->previous_env as $name => $previous_value ) {
+			if ( false !== $previous_value ) {
 				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv -- Tests isolate CLI helper environment variables.
-				putenv( "{$name}={$this->previous_env[ $name ]}" );
+				putenv( "{$name}={$previous_value}" );
 			} else {
 				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv -- Tests isolate CLI helper environment variables.
 				putenv( $name );
