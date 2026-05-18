@@ -7,7 +7,7 @@ Agent guidance for this repository. Keep this file focused on non-obvious workfl
 - This repo is public. Do not add credentials, tokens, site-specific hostnames, or private deployment details.
 - Keep plugin-specific behavior in caller repos unless it is truly reusable across the WPVDB plugin suite.
 - Prefer adding workflow inputs over hardcoding one plugin's layout into a reusable workflow.
-- Do not add static analysis just for these helper scripts without a concrete failure mode. The current local check surface consists of Composer and PHPCS.
+- Do not add static analysis just for these helper scripts without a concrete failure mode. The current local check surface consists of Composer, PHPCS, and PHPUnit.
 
 ## Reusable workflow gotchas
 
