@@ -6,9 +6,6 @@
 	<rule ref="WordPress-Docs" />
 	<rule ref="WordPress-VIP-Go">
 		<exclude name="WordPressVIPMinimum.JS" />
-		<exclude name="WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_fwrite" />
-		<exclude name="WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents" />
-		<exclude name="WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown" />
 	</rule>
 
 	<rule ref="WordPress">
@@ -16,6 +13,12 @@
 		<exclude name="Universal.Arrays.DisallowShortArraySyntax.Found" />
 		<exclude name="Universal.Operators.DisallowStandalonePostIncrementDecrement.PostIncrementFound" />
 		<exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped" />
+	</rule>
+	<rule ref="WordPress.Files.FileName.NotHyphenatedLowercase">
+		<exclude-pattern>*/tests/Unit/*Test.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>*/tests/Unit/*Test.php</exclude-pattern>
 	</rule>
 	<rule ref="Generic.Arrays.DisallowLongArraySyntax" />
 
@@ -27,6 +30,8 @@
 
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 	<exclude-pattern>*/.github/*</exclude-pattern>
+	<exclude-pattern>*/tests/bootstrap.php</exclude-pattern>
 
 	<file>scripts</file>
+	<file>tests/Unit</file>
 </ruleset>
