@@ -5,6 +5,10 @@
  * @package WPVDB_Scripts
  */
 
+// phpcs:disable WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_fwrite
+// phpcs:disable WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents
+// phpcs:disable WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown
+
 declare(strict_types=1);
 
 if ( is_bump_plugin_version_entrypoint( $argv ?? [] ) ) {
