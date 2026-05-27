@@ -128,7 +128,7 @@ jobs:
       - name: Bump plugin version
         if: ${{ inputs.version-bump && steps.version_bump.outputs.type != '' }}
         id: bump_plugin_version
-        uses: rbcorrales/wpvdb-scripts/.github/actions/bump-plugin-version@main
+        uses: Automattic/wpvdb-scripts/.github/actions/bump-plugin-version@main
         with:
           bump-type: ${{ steps.version_bump.outputs.type }}
           plugin-file: ${{ inputs.plugin-file }}

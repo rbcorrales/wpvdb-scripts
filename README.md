@@ -1,6 +1,6 @@
 # wpvdb-scripts
 
-[![Checks](https://github.com/rbcorrales/wpvdb-scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/rbcorrales/wpvdb-scripts/actions/workflows/ci.yml)
+[![Checks](https://github.com/Automattic/wpvdb-scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/Automattic/wpvdb-scripts/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777bb4?logo=php&logoColor=white)](#requirements)
 [![License](https://img.shields.io/badge/License-GPLv2%2B-blue.svg)](LICENSE)
 
