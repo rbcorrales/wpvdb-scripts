@@ -1,5 +1,5 @@
 {
-	"name": "rbcorrales/wpvdb-scripts",
+	"name": "automattic/wpvdb-scripts",
 	"description": "Shared automation scripts and reusable workflows for WPVDB plugin repositories.",
 	"type": "project",
 	"license": "GPL-2.0-or-later",
